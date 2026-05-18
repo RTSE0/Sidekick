@@ -131,7 +131,7 @@ sidekick/
 ├── .env                # Your secrets (never committed)
 ├── .env.example        # Template for new users
 ├── soul.json           # Generated identity config (never committed)
-├── memory.json         # Conversation history (never committed)
+├── agent_memory.json         # Conversation history (never committed)
 └── HEARTBEAT.md        # Generated background task checklist
 ```
  

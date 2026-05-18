@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Sidekick generated files
+soul.json
+agent_memory.json
+HEARTBEAT.md

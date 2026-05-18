@@ -84,9 +84,7 @@ TARGET_MODEL=qwen2.5:14b
 **How to get your User ID:** In Discord, go to Settings → Advanced → enable Developer Mode. Then right-click your username and click "Copy User ID."
  
 ### 5. Start Ollama
-```bash
-ollama serve
-```
+Run `ollama serve` in a separate terminal window. If you get a port error, Ollama is already running in the background — you're good to go.
  
 ### 6. Run Sidekick
 ```bash

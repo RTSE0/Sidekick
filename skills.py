@@ -1,5 +1,50 @@
 import subprocess
+import ctypes
+
+import pyperclip
 from ddgs import DDGS
+
+def get_local_clipboard():
+    #Grab text from windows clipboard using native win32 API
+    CF_UNICODETEXT = 13
+
+    user32 = ctypes.windll.user32
+    kernel32 = ctypes.windll.kernel32
+
+    # Define argtypes and restypes to prevent pointer truncation on 64-bit systems
+    user32.OpenClipboard.argtypes = [wintypes.HWND]
+    user32.OpenClipboard.restype = wintypes.BOOL
+
+    user32.CloseClipboard.argtypes = []
+    user32.CloseClipboard.restype = wintypes.BOOL
+
+    user32.IsClipboardFormatAvailable.argtypes = [wintypes.UINT]
+    user32.IsClipboardFormatAvailable.restype = wintypes.BOOL
+
+    user32.GetClipboardData.argtypes = [wintypes.UINT]
+    user32.GetClipboardData.restype = wintypes.HANDLE
+
+    kernel32.GlobalLock.argtypes = [wintypes.HGLOBAL]
+    kernel32.GlobalLock.restype = ctypes.c_void_p
+
+    kernel32.GlobalUnlock.argtypes = [wintypes.HGLOBAL]
+    kernel32.GlobalUnlock.restype = wintypes.BOOL
+
+    if not user32.OpenClipboard(None):
+        return "Error: Could not open the clipboard"
+    try:
+        if user32.IsClipboardFormatAvailable(CF_UNICODETEXT):
+            h_clip_mem = user32.GetClipboardData(CF_UNICODETEXT)
+            if h_clip_mem:
+                p_clip_mem = kernel32.GlobalLock(h_clip_mem)
+                if p_clip_mem:
+                    text = ctypes.c_wchar_p(p_clip_mem).value
+                    kernel32.GlobalUnlock(h_clip_mem)
+                    if text is not None:
+                        return text
+    finally:
+        user32.CloseClipboard()
+    return ""
 
 def skill_web_search(arguments):
     query = arguments.get("query") or arguments.get("search_query") or arguments.get("q") or ""
@@ -66,5 +111,5 @@ Skills_sys = {
     "read_file": skill_read_file,
     "run_command": skill_run_command,
     "create_file": skill_create_file,
-    "web_search": skill_web_search
+    "web_search": skill_web_search,
     }

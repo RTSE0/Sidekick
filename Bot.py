@@ -6,40 +6,46 @@ import asyncio
 import time
 import os
 
+
 from discord.ext import tasks
 from dotenv import load_dotenv
 from Memory import load_memory, save_memory
 from skills import Skills_sys
 from config import load_agent_config, save_agent_config
+from skills import get_local_clipboard
 
 load_dotenv()
 
 last_interaction_time = 0
+debug_sessions = {}
+checklist_sessions = {}
+# States: None, "awaiting_mode", "awaiting_tasks_add", "awaiting_tasks_replace"
 
 #load or generate agent core personality
 agent_id = load_agent_config()
 
+Bootstrap_prompt = (
+    "You are an AI agent in the process of being initialized by your creator.\n"
+    "You currently do not have a name, personality, or specific purpose.\n"
+    "Your task is to converse with the user in the terminal to discover who they want you to be.\n"
+    "Ask questions about your name, your tone (e.g., deadpan comedy, professional coder), your goals, "
+    "and what kinds of things they want you to proactively monitor or remind them about in the background.\n\n"
+    "CRITICAL: Once the user says they are satisfied with your setup, you must stop chatting "
+    "and output a raw JSON block matching this exact format:\n"
+    "{\n"
+    '  "initialized": true,\n'
+    '  "name": "Chosen Name",\n'
+    '  "tone": "Chosen Tone Description",\n'
+    '  "purpose": "Primary Directive/Goals",\n'
+    '  "heartbeat_tasks": ["task 1", "task 2", "task 3"]\n'
+    "}\n"
+    "Do not say anything else after or before the JSON once you decide to output it."
+)
+
+
 if not agent_id:
     print("=== INITIALIZATION PHASE ===")
     print("No agent config found. Let's build agent identity.\n")
-
-    Bootstrap_prompt = (
-        "You are an AI agent in the process of being initialized by your creator.\n"
-        "You currently do not have a name, personality, or specific purpose.\n"
-        "Your task is to converse with the user in the terminal to discover who they want you to be.\n"
-        "Ask questions about your name, your tone (e.g., deadpan comedy, professional coder), your goals, "
-"and what kinds of things they want you to proactively monitor or remind them about in the background.\n\n"
-        "CRITICAL: Once the user says they are satisfied with your setup, you must stop chatting "
-        "and output a raw JSON block matching this exact format:\n"
-        "{\n"
-        '  "initialized": true,\n'
-        '  "name": "Chosen Name",\n'
-        '  "tone": "Chosen Tone Description",\n'
-        '  "purpose": "Primary Directive/Goals",\n'
-        '  "heartbeat_tasks": ["task 1", "task 2", "task 3"]\n'
-        "}\n"
-        "Do not say anything else after or before the JSON once you decide to output it."
-        )
 
     bootstrap_history = [{"role": "system", "content": Bootstrap_prompt}]
 
@@ -67,7 +73,7 @@ def build_runtime_prompt(id):
         "- 'read_file': Reads local text files. Arguments: {'path': 'string'}\n"
         "- 'create_file': Creates a new file with specified text. Arguments: {'path': 'string', 'contents': 'string'}\n"
         "- 'run_command': Runs Windows shell commands. Arguments: {'command': 'string'}\n"
-         "- 'web_search': Searches the live internet for up-to-date facts, news, or articles. Arguments: {'query': 'string'}\n"
+        "- 'web_search': Searches the live internet for up-to-date facts, news, or articles. Arguments: {'query': 'string'}\n"
 
         "IMPORTANT: The 'web_search' tool is REAL and FULLY FUNCTIONAL on this system. "
         "It uses a live search engine and returns actual results. "
@@ -103,6 +109,40 @@ def build_runtime_prompt(id):
         "NEVER write the text 'Executing tool' or announce that you are using a tool in plain text. Your response must jump STRAIGHT into the JSON block starting with { and nothing else. If you write conversational text before the JSON, the system will crash."
 
     )
+
+def build_debug_prompt(id):
+    return (
+        f"You are {id['name']}, an autonomous local AI agent operating via Discord.\n"
+    f"Your conversational tone, attitude, and style must be: {id['tone']}\n\n"
+    "CRITICAL: You must ALWAYS respond in English only. Never use any other language "
+    "under any circumstances. Not even a single word in another language.\n\n"
+    "You are currently in RUBBER DUCK DEBUG MODE.\n"
+    "Your role has fundamentally changed. You are no longer here to solve problems.\n"
+    "You are here to help the user solve their OWN problems by asking questions.\n\n"
+    
+    "RUBBER DUCK RULES:\n"
+    "1. NEVER give the answer directly, even if you know it.\n"
+    "2. ALWAYS respond with a question that guides the user toward the answer.\n"
+    "3. Ask one question at a time. Never stack multiple questions.\n"
+    "4. If the user is stuck, ask them to explain the code line by line.\n"
+    "5. If they find the bug themselves, celebrate it in your character's voice.\n"
+    "6. Stay in character the entire time — you're still Sidekick, just in debug mode.\n\n"
+    "7. Never hint at WHERE the bug is or WHAT TYPE of bug it is. "
+    "8. Only ask the user to explain their own code back to you line by line. "
+    "9. Let them find the location and type of bug entirely on their own.\n\n"
+
+    "Example questions to ask:\n"
+    "- What do you EXPECT this line to do?\n"
+    "- What is it ACTUALLY doing instead?\n"
+    "- Have you tried printing the value of X at that point?\n"
+    "- When did this last work correctly?\n"
+    "- What changed between then and now?\n\n"
+    
+    "When the user says 'exit debug' or similar, output ONLY this exact text:\n"
+    "DEBUG_SESSION_COMPLETE\n"
+    "Followed by a one paragraph summary of what was debugged and what the user discovered."
+)
+
 #load up long-term history
 chat_history = load_memory()
 
@@ -166,6 +206,7 @@ async def agent_heartbeat():
     max_steps = 5
     step = 0
     while True:
+        tool_executed = False
         step += 1
         if step > max_steps:
             print("[Heartbeat] Exceeded max steps.")
@@ -230,7 +271,7 @@ async def agent_heartbeat():
 @client.event
 async def on_ready():
     print(f"--------------------------------------------------")
-    print(f" MiniClaw Clone is officially ONLINE!")
+    print(f" 🦸SIDEKICK is officially ONLINE!")
     print(f" Logged in as: {client.user}")
     if not load_agent_config():
         print("No soul file detected. Standing by for setup interveiw.")
@@ -264,12 +305,84 @@ async def on_message(message):
         clean_content = message.content.strip()
         history_id = str(message.author.id) #JSON needs string keys
     else:
-        clean_content = message.content.replace(f"<@{client.user.id}>", "").strip() 
+        clean_content = re.sub(rf'<@!?{client.user.id}>', '', message.content).strip()
         history_id = str(message.channel.id)
 
     # Hot reload identity info right inside message event handler
     agent_id = load_agent_config()
 
+    if "debug mode" in clean_content.lower():
+        if not agent_id:
+            await message.channel.send("You must initialize the agent parameters first before using debug mode.")
+            return
+        debug_sessions[history_id] = True
+        chat_history[history_id] = [{"role": "system", "content": build_debug_prompt(agent_id)}]
+        await message.channel.send("🦆 **Debug mode activated.** What's troubling you?I won't give you answers — I'll ask questions. Walk me through what's happening.")
+        return
+    
+    # Debug Mode Exit
+    if "exit debug" in clean_content.lower() and debug_sessions.get(history_id):
+        debug_sessions[history_id] = False
+        #Create summary
+        chat_history[history_id].append({"role": "user", "content": "DEBUG_SESSION_COMPLETE"})
+        #Go back to normal prompt
+        chat_history[history_id] = [{"role": "system", "content": build_runtime_prompt(agent_id)}]
+        save_memory(chat_history)
+        await message.channel.send("🦆 **Debug session complete.** Back to normal mode. What would you like help with?")
+        return
+     # Step 1: Trigger    
+    if "update checklist" in clean_content.lower() or "update heartbeat" in clean_content.lower():
+        checklist_sessions[history_id] = "awaiting_mode"
+        await message.channel.send("🗒️ Would you like to **replace** the entire checklist or **add** new tasks to it?")
+        return
+
+    if "clipboard" in clean_content.lower():
+        try:
+            current_clip = get_local_clipboard()
+            if current_clip:
+                clean_content = clean_content + f"\n\n[CLIPBOARD CONTENT]\n{current_clip}"
+                print("[Clipboard Sentinel] Clipboard injected into message.")
+        except Exception as e:
+            print(f"[Clipboard Sentinel] Manual read failed: {e}")
+
+    # Step 2: Mode selction
+    if checklist_sessions.get(history_id) == "awaiting_mode":
+        if "replace" in clean_content.lower():
+            checklist_sessions[history_id] = "awaiting_tasks_replace"
+            await message.channel.send("📝 What should the new checklist be? Send your tasks one per line.")
+            return
+        elif "add" in clean_content.lower():
+            checklist_sessions[history_id] = "awaiting_tasks_add"
+            await message.channel.send("📝 What would you like to add to the checklist? Send your tasks one per line.")
+            return
+        else:
+            await message.channel.send("Please say **replace** or **add**.")
+            return
+    # Step 3: Recieve tasks
+    if checklist_sessions.get(history_id) in ("awaiting_tasks_replace", "awaiting_tasks_add"):
+        new_task = [line.strip() for line in clean_content.splitlines() if line.strip()]
+        mode = checklist_sessions[history_id]
+
+        if mode == "awaiting_tasks_replace":
+            with open("HEARTBEAT.md", "w", encoding = "utf-8") as f:
+                f.write("# Heartbeat Checklist\n")
+                for task in new_task:
+                    f.write(f"- {task}\n")
+            await message.channel.send(f"✅ Checklist replaced with {len(new_task)} task(s)!")
+        elif mode == "awaiting_tasks_add":
+            with open("HEARTBEAT.md", "a", encoding = "utf-8") as f:
+                for task in new_task:
+                    f.write(f"- {task}\n")
+            await message.channel.send(f"✅ Added {len(new_task)} task(s) to the checklist!")
+        
+        checklist_sessions.pop(history_id, None)
+        save_memory(chat_history)
+        return
+            
+
+    if debug_sessions.get(history_id):
+        if history_id not in chat_history or chat_history[history_id][0]["content"] != build_debug_prompt(agent_id):
+            chat_history[history_id] = [{"role": "system", "content": build_debug_prompt(agent_id)}]
     # Track conversation state for this specific thread
     if history_id not in chat_history:
         if not agent_id:
@@ -280,7 +393,7 @@ async def on_message(message):
     # Append user prompt to memory loop
     chat_history[history_id].append({"role": "user", "content": clean_content})
     save_memory(chat_history)
-
+    
     #status update in terminal
     print(f"Incoming prompt from {message.author}: '{clean_content}'")
     
@@ -289,6 +402,7 @@ async def on_message(message):
         max_steps = 5
         step = 0
         while True:
+            tool_executed = False
             step += 1
             if step > max_steps:
                 await message.channel.send("⚠️ Agent exceeded max steps, stopping.")
@@ -306,6 +420,16 @@ async def on_message(message):
                         response_data = await api_response.json()
                         ai_message = response_data.get("message", {})
                         ai_reply = ai_message.get("content", "").strip()
+
+                        # Intercept debug session complete
+                        if "DEBUG_SESSION_COMPLETE" in ai_reply:
+                            summary = ai_reply.replace("DEBUG_SESSION_COMPLETE", "").strip()
+                            debug_sessions[history_id] = False
+                            chat_history[history_id] = [{"role": "system", "content": build_runtime_prompt(agent_id)}]
+                            save_memory(chat_history)
+                            await message.channel.send(f"🦆 **Debug session complete.**\n\n{summary}")
+                            return
+
                         print(f"[DEBUG] Raw model output: {repr(ai_reply)}")
                         #save agent reply to history
                         chat_history[history_id].append({"role": "assistant", "content": ai_reply})

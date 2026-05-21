@@ -18,6 +18,9 @@ Inspired by <a href="https://github.com/openClaw">OpenClaw</a>.
 - **Proactive Heartbeat** — Runs in the background every 30 seconds. Checks in on you more than my parents have, sends reminders, and monitors your system — all via Discord DM.
 - **Local & Private** — Everything runs on your machine. Your data never leaves.
 - **Extensible Skills** — Add new tools to `skills.py` and the agent can use them immediately.
+- **🦆 Rubber Duck Debugger** — Activates a Socratic debug mode that asks questions instead of giving answers. Guided by your agent's personality. Saves a summary of every session.
+- **🗒️ Conversational Checklist Editor** — Add or replace heartbeat tasks through a guided conversation. No commands to memorize.
+- **📋 Clipboard Sentinel** — Reads your clipboard on demand and injects the content directly into the conversation. Useful for pasting tracebacks or code for analysis.
 
 ### Built-in Skills
 | Skill | Description |
@@ -113,6 +116,17 @@ To reset and start a fresh identity, delete `soul.json` and `agent_memory.json`.
 @Sidekick search the web for the latest AI news
 @Sidekick create a file called notes.txt that says "remember to ship"
 @Sidekick list the files in C:\Users\me\Documents
+
+✨NEW
+
+### 🦆 Rubber Duck Debug Mode
+Say `debug mode` to activate. Sidekick switches into a Socratic mode — it asks questions instead of giving answers, guiding you to find the bug yourself. When you're done, say `exit debug` and it summarizes what you discovered.
+
+### 🗒️ Update Your Checklist
+Say `update checklist` and Sidekick will ask whether you want to **add** tasks or **replace** the whole list. Then just type your tasks one per line.
+
+### 📋 Clipboard Sentinel
+Say anything with the word **clipboard** in it and Sidekick will read your current clipboard and inject it into the conversation. Useful for sharing error messages or code without manually pasting.
 ```
  
 **Or DM it directly** — no mention needed in DMs.

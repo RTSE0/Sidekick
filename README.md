@@ -10,7 +10,7 @@ Inspired by <a href="https://github.com/openClaw">OpenClaw</a>.
 
 ---
 
-## ✨ Features
+## Features
 
 - **Soul System** — On first run, Sidekick interviews you to build its own identity: name, personality, purpose, and tasks for heartbeat. It becomes whoever you want it to be.
 - **Persistent Memory** — Remembers every conversation across sessions, per channel and per DM.
@@ -18,9 +18,9 @@ Inspired by <a href="https://github.com/openClaw">OpenClaw</a>.
 - **Proactive Heartbeat** — Runs in the background every 30 seconds. Checks in on you more than my parents have, sends reminders, and monitors your system — all via Discord DM.
 - **Local & Private** — Everything runs on your machine. Your data never leaves.
 - **Extensible Skills** — Add new tools to `skills.py` and the agent can use them immediately.
-- **🦆 Rubber Duck Debugger** — Activates a Socratic debug mode that asks questions instead of giving answers. Guided by your agent's personality. Saves a summary of every session.
-- **🗒️ Conversational Checklist Editor** — Add or replace heartbeat tasks through a guided conversation. No commands to memorize.
-- **📋 Clipboard Sentinel** — Reads your clipboard on demand and injects the content directly into the conversation. Useful for pasting tracebacks or code for analysis.
+- **Rubber Duck Debugger** — Activates a Socratic debug mode that asks questions instead of giving answers. Guided by your agent's personality. Saves a summary of every session.
+- **Conversational Checklist Editor** — Add or replace heartbeat tasks through a guided conversation. No commands to memorize.
+- **Clipboard Sentinel** — Reads your clipboard on demand and injects the content directly into the conversation. Useful for pasting tracebacks or code for analysis.
 
 ### Built-in Skills
 | Skill | Description |
@@ -30,7 +30,7 @@ Inspired by <a href="https://github.com/openClaw">OpenClaw</a>.
 | `run_command` | Executes Windows shell commands |
 | `web_search` | Searches the live web via DuckDuckGo |
 
-## 🛠️ Prerequisites
+## Prerequisites
  
 - Python 3.10+
 - [Ollama](https://ollama.com) installed and running
@@ -51,7 +51,7 @@ Inspired by <a href="https://github.com/openClaw">OpenClaw</a>.
 - **STORAGE:** 1 TB of available space\
 <sub>*Just kidding, I have no idea what the minimum recommendation is, I just wanted to show my system off. 😉</sub>
 
-## 🚀 Setup
+## Setup
  
 ### 1. Clone the repo
 ```bash
@@ -95,7 +95,7 @@ python bot.py
 ```
  
 ---
-## 🎭 First Run — The Soul Interview
+## First Run — The Soul Interview
  
 On first launch with no `soul.json`, Sidekick will prompt you to set up its identity via Discord. Just mention it or DM it to begin:
  
@@ -117,15 +117,15 @@ To reset and start a fresh identity, delete `soul.json` and `agent_memory.json`.
 @Sidekick create a file called notes.txt that says "remember to ship"
 @Sidekick list the files in C:\Users\me\Documents
 
-✨NEW
+NEW
 
-### 🦆 Rubber Duck Debug Mode
+### Rubber Duck Debug Mode
 Say `debug mode` to activate. Sidekick switches into a Socratic mode — it asks questions instead of giving answers, guiding you to find the bug yourself. When you're done, say `exit debug` and it summarizes what you discovered.
 
-### 🗒️ Update Your Checklist
+### Update Your Checklist
 Say `update checklist` and Sidekick will ask whether you want to **add** tasks or **replace** the whole list. Then just type your tasks one per line.
 
-### 📋 Clipboard Sentinel
+### Clipboard Sentinel
 Say anything with the word **clipboard** in it and Sidekick will read your current clipboard and inject it into the conversation. Useful for sharing error messages or code without manually pasting.
 ```
  
@@ -134,7 +134,7 @@ Say anything with the word **clipboard** in it and Sidekick will read your curre
 **The heartbeat** runs every 30 seconds in the background and will DM you based on your configured checklist. It skips automatically if you've been active in the last 5 minutes.
  
 ---
-## 📁 Project Structure
+## Project Structure
  
 ```
 sidekick/
@@ -151,7 +151,7 @@ sidekick/
  
 ---
  
-## ➕ Adding New Skills
+## Adding New Skills
  
 Open `skills.py` and add a new function:
  
@@ -174,14 +174,14 @@ Finally, add it to the tools list in `build_runtime_prompt()` in `bot.py` so the
  
 ---
  
-## ⚠️ Security Notes
+## Security Notes
  
 - Sidekick can run shell commands on your machine. Only run it on hardware you trust and control.
 - Never share your `.env` file or commit it to GitHub.
 - The `run_command` skill has a basic blocklist for destructive commands but is not a full sandbox. Use with care.
 ---
  
-## 📋 Requirements
+## Requirements
  
 ```
 discord.py>=2.3.0
@@ -192,7 +192,7 @@ ddgs>=9.0.0
  
 ---
  
-## 📄 License
+## License
  
 MIT — do whatever you want with it, I don't care. I really don't...really.
  

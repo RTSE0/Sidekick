@@ -109,7 +109,7 @@ To reset and start a fresh identity, delete `soul.json` and `agent_memory.json`.
  
 ---
  
-## 💬 Usage
+## Usage
  
 **Mention it in a server channel:**
 ```
